@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>반짝반짝 마음 보석함 💎</title>
+    <!-- Tailwind CSS (예쁜 디자인을 위한 라이브러리) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Noto+Sans+KR:wght@400;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .title-font { font-family: 'Gamja Flower', cursive; }
+    </style>
+</head>
+<body class="bg-pink-50 min-h-screen pb-12">
+
+    <!-- 헤더 -->
+    <header class="bg-white shadow-sm py-6 mb-6 text-center border-b-4 border-pink-200">
+        <h1 class="title-font text-4xl text-pink-500 font-bold flex justify-center items-center gap-2">
+            💎 반짝반짝 마음 보석함 💎
+        </h1>
+        <p class="text-gray-500 text-sm mt-1">우리 반 아이들의 예쁜 마음을 기록해요</p>
+    </header>
+
+    <main class="max-w-md mx-auto px-4">
+        <!-- 탭 메뉴 -->
+        <div class="flex justify-around bg-white rounded-full p-1 shadow-md mb-6">
+            <button onclick="switchTab('record-tab')" id="btn-record-tab" class="flex-1 py-2 rounded-full text-sm font-bold text-pink-500 bg-pink-100 transition">📝 기록하기</button>
+            <button onclick="switchTab('history-tab')" id="btn-history-tab" class="flex-1 py-2 rounded-full text-sm font-bold text-gray-500 transition">📜 모아보기</button>
+            <button onclick="switchTab('manage-tab')" id="btn-manage-tab" class="flex-1 py-2 rounded-full text-sm font-bold text-gray-500 transition">👶 원아관리</button>
+        </div>
+
+        <!-- 1. 기록하기 탭 -->
+        <section id="record-tab" class="tab-content bg-white p-6 rounded-2xl shadow-md border border-pink-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-1">✨ 오늘의 마음 보석 기록</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-600 mb-1">날짜 선택</label>
+                <input type="date" id="record-date" class="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-pink-300 outline-none">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-600 mb-2">보석을 빛낸 친구들 (중복 선택 가능)</label>
+                <div id="record-students-list" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                    <!-- 아이들 이름 체크박스가 여기에 들어감 -->
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-600 mb-1">칭찬 이유</label>
+                <textarea id="record-reason" rows="3" placeholder="예: 스스로 장난감을 제자리에 잘 정리하여 정리정돈 보석을 빛냈어요." class="w-full border-2 border-gray-200 rounded-lg p-3 text-sm focus:border-pink-300 outline-none"></textarea>
+            </div>
+
+            <button onclick="saveRecord()" class="w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-3 rounded-xl shadow-md transition">💎 보석함에 저장하기</button>
+        </section>
+
+        <!-- 2. 모아보기 탭 -->
+        <section id="history-tab" class="tab-content hidden bg-white p-6 rounded-2xl shadow-md border border-pink-100">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800">📜 마음 보석 기록장</h2>
+                <button onclick="exportToCSV()" class="bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">📊 엑셀 저장</button>
+            </div>
+
+            <!-- 필터링 -->
+            <div class="flex gap-2 mb-4">
+                <select id="filter-student" onchange="renderHistory()" class="flex-1 border text-sm rounded-lg p-2 bg-gray-50">
+                    <option value="all">전체 원아 보기</option>
+                </select>
+            </div>
+
+            <div id="history-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <!-- 기록 목록이 여기에 들어감 -->
+            </div>
+        </section>
+
+        <!-- 3. 원아 관리 탭 -->
+        <section id="manage-tab" class="tab-content hidden bg-white p-6 rounded-2xl shadow-md border border-pink-100">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">👶 우리 반 원아 관리</h2>
+            
+            <!-- 원아 추가 -->
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="new-student-name" placeholder="새 이름 입력" class="flex-1 border-2 border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-pink-300 outline-none">
+                <button onclick="addStudent()" class="bg-pink-400 hover:bg-pink-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">추가</button>
+            </div>
+
+            <h3 class="text-sm font-bold text-gray-600 mb-2">현재 원아 명단</h3>
+            <div id="manage-students-list" class="space-y-2">
+                <!-- 삭제 가능한 원아 목록이 여기에 들어감 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 자바스크립트 기능 코드 -->
+    <script>
+        // 초기 데이터 세팅 (로컬스토리지 사용)
+        let students = JSON.parse(localStorage.getItem('students')) || ["김민준", "이서아", "박도윤", "최지우"];
+        let records = JSON.parse(localStorage.getItem('records')) || [];
+
+        // 오늘 날짜 기본값 설정
+        document.getElementById('record-date').value = new Date().toISOString().substring(0, 10);
+
+        // 앱 시작 시 초기 실행
+        updateData();
+
+        // 탭 전환 기능
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+                btn.classList.remove('bg-pink-100', 'text-pink-500');
+                btn.classList.add('text-gray-500');
+            });
+            document.getElementById('btn-' + tabId).classList.add('bg-pink-100', 'text-pink-500');
+            document.getElementById('btn-' + tabId).classList.remove('text-gray-500');
+            
+            if(tabId === 'history-tab') renderHistory();
+        }
+
+        // 전체 데이터 화면 갱신
+        function updateData() {
+            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('records', JSON.stringify(records));
+            renderStudents();
+        }
+
+        // 학생 목록 그리기 (기록 탭, 관리 탭, 필터)
+        function renderStudents() {
+            // 1. 기록 페이지의 체크박스 리스트
+            const recordList = document.getElementById('record-students-list');
+            recordList.innerHTML = students.map(name => `
+                <label class="flex items-center gap-1 bg-white border px-3 py-1.5 rounded-full text-sm cursor-pointer hover:bg-pink-50 transition">
+                    <input type="checkbox" name="selected-student" value="${name}" class="accent-pink-400">
+                    <span>${name}</span>
+                </label>
+            `).join('');
+
+            // 2. 관리 페이지의 리스트
+            const manageList = document.getElementById('manage-students-list');
+            manageList.innerHTML = students.map(name => `
+                <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border">
+                    <span class="font-bold text-gray-700">${name}</span>
+                    <button onclick="deleteStudent('${name}')" class="text-xs text-red-400 hover:text-red-600 font-bold">삭제</button>
+                </div>
+            `).join('');
+
+            // 3. 필터 선택 상자
+            const filterSelect = document.getElementById('filter-student');
+            filterSelect.innerHTML = '<option value="all">전체 원아 보기</option>' + 
+                students.map(name => `<option value="${name}">${name}</option>`).join('');
+        }
+
+        // 학생 추가
+        function addStudent() {
+            const input = document.getElementById('new-student-name');
+            const name = input.value.trim();
+            if(!name) return alert('이름을 입력해주세요.');
+            if(students.includes(name)) return alert('이미 등록된 이름입니다.');
+            
+            students.push(name);
+            input.value = '';
+            updateData();
+            alert(`${name} 친구가 등록되었습니다!`);
+        }
+
+        // 학생 삭제
+        function deleteStudent(name) {
+            if(confirm(`${name} 친구를 명단에서 삭제하시겠습니까?`)) {
+                students = students.filter(s => s !== name);
+                updateData();
+            }
+        }
+
+        // 칭찬 기록 저장하기
+        function saveRecord() {
+            const date = document.getElementById('record-date').value;
+            const reason = document.getElementById('record-reason').value.trim();
+            
+            const checkboxes = document.querySelectorAll('input[name="selected-student"]:checked');
+            const selectedStudents = Array.from(checkboxes).map(cb => cb.value);
+
+            if(selectedStudents.length === 0) return alert('보석을 빛낸 친구를 선택해 주세요!');
+            if(!reason) return alert('칭찬 이유를 적어주세요!');
+
+            // 각 학생별로 기록 추가
+            selectedStudents.forEach(name => {
+                records.unshift({
+                    id: Date.now() + Math.random(), // 고유 ID
+                    date: date,
+                    name: name,
+                    reason: reason
+                });
+            });
+
+            updateData();
+            
+            // 입력창 초기화
+            document.getElementById('record-reason').value = '';
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            alert('🎉 마음 보석이 성공적으로 저장되었습니다!');
+        }
+
+        // 기록 목록 그리기
+        function renderHistory() {
+            const filterValue = document.getElementById('filter-student').value;
+            const historyList = document.getElementById('history-list');
+            
+            let filteredRecords = records;
+            if(filterValue !== 'all') {
+                filteredRecords = records.filter(r => r.name === filterValue);
+            }
+
+            if(filteredRecords.length === 0) {
+                historyList.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">기록이 없습니다.</p>';
+                return;
+            }
+
+            historyList.innerHTML = filteredRecords.map(r => `
+                <div class="bg-pink-50/50 p-4 rounded-xl border border-pink-100 relative">
+                    <span class="text-xs text-gray-400 font-bold">${r.date}</span>
+                    <h4 class="font-bold text-pink-600 text-sm mt-0.5">${r.name}</h4>
+                    <p class="text-gray-600 text-sm mt-1 leading-relaxed">${r.reason}</p>
+                    <button onclick="deleteRecord(${r.id})" class="absolute top-3 right-3 text-gray-300 hover:text-red-400 text-xs">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        // 기록 단일 삭제
+        function deleteRecord(id) {
+            if(confirm('이 칭찬 기록을 보석함에서 꺼내어 삭제할까요?')) {
+                records = records.filter(r => r.id !== id);
+                updateData();
+                renderHistory();
+            }
+        }
+
+        // 엑셀(CSV) 다운로드 기능 (한글 깨짐 방지 포함)
+        function exportToCSV() {
+            if(records.length === 0) return alert('내보낼 기록이 없습니다.');
+            
+            let csvContent = "\uFEFF날짜,이름,칭찬 내용\n"; // 한글 깨짐 방지 UTF-8 BOM 설정
+            records.forEach(r => {
+                csvContent += `"${r.date}","${r.name}","${r.reason.replace(/"/g, '""')}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `마음보석함_기록_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
